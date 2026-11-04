@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SirFalconX · Space Cowboy</title>
+<style>
+  :root{--bg:#0b0b1a;--yellow:#f5c518;--red:#e63946;--teal:#4ecdc4;--cream:#f2e8cf}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%;background:var(--bg);overflow:hidden;color:var(--cream);font-family:'Courier New',monospace}
+  canvas{position:fixed;inset:0;width:100%;height:100%}
+  .hud{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none}
+  .box{padding:2rem 3rem;border:3px solid var(--yellow);outline:1px solid var(--red);outline-offset:6px;background:#0b0b1acc;transition:transform .05s linear;will-change:transform}
+  .tag{color:var(--teal);letter-spacing:.35em;font-weight:700;font-size:clamp(.7rem,1.6vw,1rem)}
+  h1{font-family:'Arial Black',Impact,sans-serif;font-style:italic;font-size:clamp(2.6rem,10vw,7rem);color:var(--yellow);line-height:1;margin:.3em 0;
+     text-shadow:3px 3px 0 var(--red),-3px -3px 0 var(--teal)}
+  .bar{height:4px;background:var(--cream);margin:.6em 0}.bar i{display:block;width:25%;height:100%;background:var(--red)}
+  .sub{letter-spacing:.2em;font-weight:700;font-size:clamp(.7rem,1.8vw,1.1rem)}
+  .out{color:var(--yellow);margin-top:1em;letter-spacing:.2em}
+  .out::after{content:"_";animation:b 1s steps(1) infinite}@keyframes b{50%{opacity:0}}
+  a{position:fixed;bottom:1.2rem;right:1.4rem;color:var(--yellow);font-weight:700;letter-spacing:.15em;text-decoration:none;border:2px solid var(--yellow);padding:.4rem .8rem;background:var(--bg)}
+  a:hover{background:var(--yellow);color:var(--bg)}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(transparent 0 2px,#0004 2px 3px)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud"><div class="box" id="box">
+  <div class="tag">SESSION #01 // CHATARRERO</div>
+  <h1>SIRFALCONX</h1>
+  <div class="bar"><i></i></div>
+  <div class="sub">GAME DEV · 3D MODELING · ANIMATION</div>
+  <div class="out">SEE YOU SPACE COWBOY...</div>
+</div></div>
+<a href="https://github.com/SirFalconX">GITHUB →</a>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d'),box=document.getElementById('box');
+let W,H,dpr=Math.min(devicePixelRatio||1,2);
+const m={x:.5,y:.5},s={x:.5,y:.5};            // mouse objetivo / suavizado
+const layers=[0.015,0.035,0.07].map((p,i)=>({p,stars:Array.from({length:70+i*20},()=>({x:Math.random(),y:Math.random(),r:.6+i*.7,t:Math.random()*6,c:['#f2e8cf','#f5c518','#4ecdc4'][Math.random()*3|0]}))}));
+const ship={x:.2,y:.6,a:0,trail:[]};
+function size(){W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',size);size();
+function move(e){const t=e.touches?e.touches[0]:e;m.x=t.clientX/W;m.y=t.clientY/H}
+addEventListener('mousemove',move);addEventListener('touchmove',move,{passive:true});
+function planet(px,py){
+  const g=x.createRadialGradient(px-25,py-25,5,px,py,90);
+  g.addColorStop(0,'#ff9f43');g.addColorStop(.6,'#e63946');g.addColorStop(1,'#5b1233');
+  x.fillStyle=g;x.beginPath();x.arc(px,py,80,0,7);x.fill();
+  [[140,28,'#f5c518',3],[155,34,'#4ecdc4',1.5]].forEach(([rx,ry,col,lw])=>{x.strokeStyle=col;x.lineWidth=lw;x.beginPath();x.ellipse(px,py,rx,ry,-.31,0,7);x.stroke()});
+}
+function drawShip(px,py,a){
+  x.save();x.translate(px,py);x.rotate(a);
+  x.fillStyle='#e63946';x.beginPath();x.moveTo(0,0);x.lineTo(-22,-5);x.lineTo(-70,-3);x.lineTo(-92,0);x.lineTo(-70,3);x.lineTo(-22,5);x.fill();
+  x.fillStyle='#f5c518';x.beginPath();x.moveTo(-22,-5);x.lineTo(-48,-26);x.lineTo(-58,-26);x.lineTo(-46,-3);x.fill();
+  x.beginPath();x.moveTo(-22,5);x.lineTo(-48,26);x.lineTo(-58,26);x.lineTo(-46,3);x.fill();
+  x.fillStyle='#4ecdc4';x.beginPath();x.arc(-52,0,3,0,7);x.fill();x.restore();
+}
+let t0=0;
+function frame(t){
+  const dt=(t-t0)/1000||0;t0=t;
+  s.x+=(m.x-s.x)*.08;s.y+=(m.y-s.y)*.08;
+  const dx=s.x-.5,dy=s.y-.5;
+  const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#0b0b1a');g.addColorStop(.55,'#1a1040');g.addColorStop(1,'#3a0f3a');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  for(const L of layers)for(const st of L.stars){
+    st.t+=dt*2;x.globalAlpha=.3+.7*Math.abs(Math.sin(st.t));
+    x.fillStyle=st.c;
+    const px=((st.x-dx*L.p*6)%1+1)%1*W,py=((st.y-dy*L.p*6)%1+1)%1*H;
+    x.beginPath();x.arc(px,py,st.r,0,7);x.fill();
+  }
+  x.globalAlpha=1;
+  planet(W*.78-dx*60,H*.35-dy*60);
+  // la nave persigue el cursor
+  const tx=m.x*W,ty=m.y*H;
+  const ang=Math.atan2(ty-ship.y*H,tx-ship.x*W);
+  ship.a+=(Math.atan2(Math.sin(ang-ship.a),Math.cos(ang-ship.a)))*.08;
+  ship.x+=(tx/W-ship.x)*.025;ship.y+=(ty/H-ship.y)*.025;
+  ship.trail.push([ship.x*W,ship.y*H]);if(ship.trail.length>40)ship.trail.shift();
+  ship.trail.forEach(([px,py],i)=>{x.globalAlpha=i/ship.trail.length*.6;x.fillStyle=i%2?'#f5c518':'#4ecdc4';x.beginPath();x.arc(px,py,i/ship.trail.length*5,0,7);x.fill()});
+  x.globalAlpha=1;drawShip(ship.x*W,ship.y*H,ship.a);
+  box.style.transform=`translate(${dx*-24}px,${dy*-24}px) rotateX(0)`;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
